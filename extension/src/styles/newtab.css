@@ -1,0 +1,1006 @@
+/* Разметка новой вкладки. Ни одного шестнадцатеричного цвета и ни одного
+   селектора по идентификатору: всё оформление приходит из tokens.css,
+   а проверка «нет ни одного знака решётки» должна оставаться зелёной. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-color: var(--bg);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Встроенные фоны — 6 файлов картинок в пакете расширения (десятый раунд,
+   были градиентные «темы» — см. tokens.css про акцент каждой). .wallpaper
+   уже даёт background-size: cover / position: center выше. */
+.wallpaper[data-wallpaper="1"] { background-image: url("../../assets/1.jpg"); }
+.wallpaper[data-wallpaper="2"] { background-image: url("../../assets/2.jpg"); }
+.wallpaper[data-wallpaper="3"] { background-image: url("../../assets/3.jpg"); }
+.wallpaper[data-wallpaper="4"] { background-image: url("../../assets/4.jpg"); }
+.wallpaper[data-wallpaper="5"] { background-image: url("../../assets/5.jpg"); }
+.wallpaper[data-wallpaper="6"] { background-image: url("../../assets/6.jpg"); }
+
+.app {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 0 0;
+}
+
+/* --- лента страниц ------------------------------------------------------- */
+
+.pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 calc(var(--btn) + 34px) 0 34px;
+}
+
+.pages-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+}
+
+.pages-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: var(--fw-tab) var(--fs-tab) / 1 var(--font);
+  padding: 9px 14px 10px;
+  /* Третий раунд фидбека: форма «букмарка» (скруглена только сверху) теперь
+     одна и та же у активной и неактивной вкладки — пользователю не
+     понравилась пилюля, активная отличается только заливкой/цветом текста
+     ниже, никогда не меняя border-radius (значит, и мгновенного скачка
+     формы, который чинился в прошлом раунде, тоже больше нет — чинить
+     нечего, раз форма не меняется). */
+  border-radius: var(--r-row) var(--r-row) 0 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  /* Шестой раунд фидбека: transform/box-shadow-анимация «подъёма» активной
+     вкладки убрана — на живом расширении читалась как «вкладки выезжают»,
+     то есть как то самое моргание/дёрганность, которую просили убрать.
+     Оставлен только простой, безопасный переход цвета/фона. */
+  transition: color 0.15s ease, background-color 0.15s ease, border-bottom-color 0.15s ease;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+/* Активная вкладка — та же форма, что у всех, отличается только заливкой. */
+.tab[aria-current="page"] {
+  color: var(--accent-ink);
+  background: var(--accent-grad);
+  border-bottom-color: transparent;
+}
+
+.tab-add {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  transition: color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.tab-add:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Вкладка-призрак (кусок 4, R08): заменяет круглую .tab-add в конце
+   .pages-strip — та же общая форма, что у соседних .tab (паддинг/радиус),
+   но пунктирная рамка вместо сплошной и плюс по центру. .tab-add остаётся
+   в файле — им всё ещё пользуется кнопка «+ ссылка» в .board-head. */
+.tab-ghost {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  padding: 9px 14px 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--r-row) var(--r-row) 0 0;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab-ghost:hover,
+.tab-ghost:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Обёртка вкладки страницы + маленький × поверх неё (кусок 3): переименование —
+   двойной клик по самой вкладке, удаление — этот крестик, виден на hover. */
+.tab-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Кнопка-триггер меню вкладки (R03) — один компактный элемент в обычном
+   потоке .tab-wrap (не наложение поверх текста вкладки, как было раньше у
+   пары карандаш+×), виден на hover/фокусе/пока меню открыто. */
+.tab-menu-btn {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 0 0 8px 2px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab-wrap:hover .tab-menu-btn,
+.tab-menu-btn:focus-visible,
+.tab-menu-btn[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.tab-menu-btn:hover,
+.tab-menu-btn[aria-expanded="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Плавающее меню «Переименовать/Удалить» (R03) — один переиспользуемый узел
+   (newtab.js: openTabMenu()), не по одному на вкладку: .pages-strip
+   обрезал бы предрендеренное меню (overflow-x: auto по спецификации тянет
+   за собой overflow-y: auto). position: fixed + координаты кнопки-триггера
+   в момент клика. */
+.tab-menu {
+  position: fixed;
+  z-index: 6;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: var(--r-row);
+  border: 1px solid var(--border);
+  /* Тот же стеклянный язык, что у .round/.board/.dialog (восьмой раунд
+     фидбека — единый стиль для всех плавающих поверхностей). */
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+}
+
+.tab-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  color: var(--text);
+  font: var(--fw-link) var(--fs-link) / 1.3 var(--font);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tab-menu-item:hover,
+.tab-menu-item:focus-visible {
+  background: var(--surface);
+}
+
+.tab-menu-item.is-danger:hover,
+.tab-menu-item.is-danger:focus-visible {
+  color: var(--danger);
+}
+
+.pages-rule {
+  height: 1px;
+  margin: 0 34px 18px;
+  background: var(--border);
+}
+
+/* --- колонки с досками --------------------------------------------------- */
+
+.boards {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap);
+  padding: 0 calc(var(--btn) + 34px) 28px 34px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.column {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Пустая колонка без досок иначе схлопывается до 0 высоты (flex без
+     min-height) — .drop-target технически применяется при перетаскивании,
+     но у элемента нулевой высоты обводку physически не видно. */
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.board {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: var(--pad-card);
+  backdrop-filter: blur(14px);
+}
+
+/* Доска-призрак (кусок 4, R08): заменяет круглую .tab-add в конце последней
+   колонки — форма карточки доски (.board), но пунктирная рамка вместо
+   сплошной и без заливки --surface, плюс по центру. */
+.board-ghost {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  padding: var(--pad-card);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-card);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.board-ghost:hover,
+.board-ghost:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Как в референсе (история 82, пересматривает историю 76): тонкая линия
+   под заголовком карточки — на всю ширину, поэтому граница на строке-обёртке,
+   а не на самом <h2>, у которого нет своей полной ширины во flex-строке. */
+.board-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: var(--r-title-rule) solid var(--border);
+}
+
+.board-head .tab-add {
+  margin-left: auto;
+  opacity: 0;
+}
+
+.board:hover .board-head .tab-add,
+.board-head .tab-add:focus-visible {
+  opacity: 1;
+}
+
+/* Переименовать/удалить доску (кусок 3): группа справа от заголовка, вместе
+   с уже существующей кнопкой + — та же логика проявления по hover. */
+.board-head .board-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.board-head .icon-btn {
+  opacity: 0;
+}
+
+.board:hover .board-head .icon-btn,
+.board-head .icon-btn:focus-visible {
+  opacity: 1;
+}
+
+/* Маленькая круглая кнопка действия (переименовать/удалить) — доска и ссылка. */
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  /* padding: 0 — гарантированный фикс центровки: у <button> в Chrome есть
+     UA-стиль по умолчанию padding: 1px 6px, который здесь никогда не
+     обнулялся. display: grid авто-размеряет единственную дорожку под
+     контент (18px), а не под доступное место внутри паддинга (24-2*6=10px);
+     раз контент больше дорожки, при не заданном явно justify-content
+     (по умолчанию — «normal», ведёт себя как «start») дорожка прижимается
+     к началу паддинга и обрезается по правому краю кнопки — визуально
+     ровно то смещение вправо/обрезание, на которое жаловались (проверено
+     getBoundingClientRect() до/после: без padding:0 — leftGap=7/rightGap=-1,
+     с ним — 3/3/3/3, симметрично). */
+  padding: 0;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.icon-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.icon-btn.is-danger:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.board-title {
+  margin: 0;
+  font-size: var(--fs-board-title);
+  font-weight: var(--fw-board-title);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Строка ссылки + переименовать/удалить (кусок 3): действия видны на hover. */
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.link-row .link {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.link-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.link-row:hover .link-actions,
+.link-actions:focus-within {
+  opacity: 1;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--row-h);
+  padding: 0 8px;
+  border-radius: var(--r-row);
+  color: var(--text);
+  text-decoration: none;
+  font-size: var(--fs-link);
+  font-weight: var(--fw-link);
+  transition: background-color 0.15s ease;
+}
+
+.link:hover {
+  background: var(--surface-solid);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.link-icon {
+  flex: 0 0 auto;
+  width: var(--favicon);
+  height: var(--favicon);
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.link-letter {
+  flex: 0 0 auto;
+  width: var(--favicon);
+  height: var(--favicon);
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  text-transform: uppercase;
+}
+
+.link-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Блок текста в строке-обёртке без класса .link (корзина, поиск) — растягивает
+   текст, чтобы соседние элементы (действия/подпись) прижались вправо, как
+   .link-row .link делает для настоящей ссылки (кусок 5/8, сведено куском 10). */
+.row-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Строка результата поиска (третий раунд фидбека, R04) — сам <a
+   class="link-row"> здесь и есть кликабельная ссылка (в отличие от
+   .link-row в досках/корзине, где это просто flex-обёртка вокруг настоящей
+   .link или набора .icon-btn) — у .link-row самого по себе никогда не было
+   отступов/скругления/фона на hover, отсюда и «как будто без стилей».
+   Селектор специфичен под тег <a>, чтобы не задеть .link-row-обёртки
+   в досках (там `<li>`) и в корзине (там `<div>`). */
+a.link-row {
+  padding: 6px 8px;
+  border-radius: var(--r-row);
+  color: var(--text);
+  text-decoration: none;
+  font-size: var(--fs-link);
+  font-weight: var(--fw-link);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+a.link-row:hover {
+  background: var(--surface-solid);
+}
+
+a.link-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+a.link-row .dialog-label {
+  margin-top: 2px;
+}
+
+.board-empty,
+.page-empty {
+  color: var(--text-dim);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-caption);
+}
+
+.page-empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  font-size: var(--fs-board-title);
+}
+
+/* --- панель круглых кнопок справа ---------------------------------------- */
+
+/* Как в референсе (история 82, пересматривает историю 76): сплошные тёмные
+   круги 40 px, а не круги с полупрозрачной обводкой. Accent-подсветка
+   переезжает на hover/aria-pressed — заливка становится акцентной целиком. */
+.panel {
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.round {
+  width: var(--btn);
+  height: var(--btn);
+  /* padding: 0 — тот же гарантированный фикс центровки, что у .icon-btn
+     выше (UA-стиль <button> подставляет padding: 1px 6px по умолчанию,
+     здесь он никогда не обнулялся). */
+  padding: 0;
+  border-radius: var(--r-pill);
+  /* Стеклянный эффект в состоянии покоя (третий раунд фидбека — сплошные
+     непрозрачные круги слишком выделялись): та же полупрозрачная заливка
+     + backdrop-filter, что уже даёт стекло карточкам досок (.board) и
+     диалогам — язык объединяется, а не добавляется новый. Наведение и
+     нажатое состояние ниже остаются полностью непрозрачной акцентной
+     заливкой, как раньше — стекло только пока кнопка не в фокусе внимания. */
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, background-image 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.round:hover {
+  color: var(--accent-ink);
+  background: var(--accent-grad);
+  border-color: transparent;
+}
+
+.round[aria-pressed="true"] {
+  color: var(--accent-ink);
+  background: var(--accent-grad);
+  border-color: transparent;
+}
+
+.round:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- режим «глаз»: размыты тексты, иконки видны (история 60) -------------- */
+
+.is-private .board-title,
+.is-private .link-title,
+.is-private .tab-label,
+.is-private .link-icon,
+.is-private .link-letter {
+  filter: blur(5px);
+}
+
+/* --- плашки и экран ошибки ----------------------------------------------- */
+
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  /* Тот же стеклянный язык, что у остальных плавающих поверхностей
+     (восьмой раунд фидбека). */
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  color: var(--text);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-caption);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  animation: toast-in 0.18s ease-out;
+}
+
+/* Плашка выезжает снизу с лёгким fade — проигрывается один раз при
+   монтировании узла (newtab.js просто добавляет .toast в DOM, класс не
+   переключается, поэтому это @keyframes-анимация, а не transition). */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-action {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.screen {
+  margin: auto;
+  max-width: 420px;
+  text-align: center;
+  padding: 28px;
+  border-radius: var(--r-card);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.screen-title {
+  margin: 0 0 8px;
+  font-size: var(--fs-board-title);
+  font-weight: var(--fw-board-title);
+}
+
+.screen-text {
+  margin: 0 0 18px;
+  color: var(--text-dim);
+  font-size: var(--fs-link);
+}
+
+.button {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--r-pill);
+  padding: 9px 18px;
+  font: var(--fw-tab) var(--fs-tab) / 1 var(--font);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.button:hover {
+  background: var(--accent-grad);
+  color: var(--accent-ink);
+}
+
+/* --- диалог (app/dialog.js): openForm/openConfirm ------------------------- */
+
+.dialog {
+  margin: auto;
+  padding: 0;
+  /* Тот же стеклянный язык, что у .round/.board (восьмой раунд фидбека —
+     «сделаем стиль единым»): полупрозрачная заливка + backdrop-filter
+     вместо непрозрачного градиента. */
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  color: var(--text);
+  width: min(380px, calc(100vw - 48px));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+
+  /* Лёгкий fade+scale при появлении/закрытии (кусок «анимации»): closed-состояние
+     задаёт база селектора (без [open]), open — ниже. display/overlay с
+     allow-discrete держат диалог отрисованным, пока идёт переход, вместо
+     мгновенного исчезновения — так закрытие тоже успевает доиграть. */
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    overlay 0.18s ease allow-discrete,
+    display 0.18s ease allow-discrete;
+}
+
+.dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Первый кадр появления (showModal ставит [open] за тот же тик, без этого
+   правила переход не от чего было бы отсчитывать). */
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.dialog::backdrop {
+  background: rgba(4, 6, 4, 0);
+  transition:
+    background-color 0.18s ease,
+    overlay 0.18s ease allow-discrete,
+    display 0.18s ease allow-discrete;
+}
+
+.dialog[open]::backdrop {
+  background: rgba(4, 6, 4, 0.6);
+}
+
+@starting-style {
+  .dialog[open]::backdrop {
+    background: rgba(4, 6, 4, 0);
+  }
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.dialog-title {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: var(--r-title-rule) solid var(--border);
+  font-size: var(--fs-board-title);
+  font-weight: var(--fw-board-title);
+  color: var(--text);
+}
+
+.dialog-text {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-link);
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dialog-label {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-caption);
+  color: var(--text-dim);
+}
+
+.dialog-input,
+.dialog-select {
+  font: var(--fw-link) var(--fs-link) / 1.3 var(--font);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-row);
+  padding: 8px 10px;
+  min-height: var(--row-h);
+  transition: border-color 0.15s ease;
+}
+
+.dialog-input:focus-visible,
+.dialog-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Свой закрытый вид <select> (открытый попап опций — системный рендеринг ОС,
+   штатным CSS почти не берётся, поэтому здесь только закрытое состояние
+   контрола). Шеврон — две гладиентные "плашки"-треугольника через
+   background-image, а не картинка/SVG-цвет, чтобы обойтись без единого
+   цвета мимо переменных. */
+.dialog-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
+    linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+  background-position:
+    calc(100% - 19px) calc(50% - 2px),
+    calc(100% - 14px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 30px;
+}
+
+/* Chrome 134+ (март 2025): appearance: base-select стилизует весь <select>
+   целиком, включая открытый попап опций, через ::picker(select) — это
+   top-layer, кликабельный CSS, не системный рендеринг ОС. Прогрессивное
+   улучшение: @supports проверяет именно значение appearance, а не просто
+   поддержку свойства; закрытый вид выше (appearance: none + градиентный
+   шеврон) остаётся рабочим фолбэком там, где браузер этого не поддерживает —
+   переопределяются только правила ниже, всё остальное из .dialog-select
+   выше действует и здесь (шрифт, паддинги, границы). */
+@supports (appearance: base-select) {
+  .dialog-select {
+    appearance: base-select;
+    /* Обнуляем градиентный шеврон из фолбэка выше — appearance: base-select
+       сам рисует свою стрелку через ::picker-icon (стандартное поведение,
+       не требует ничего специально включать), и без сброса background-image
+       на экране было видно ДВЕ стрелки одновременно: нашу градиентную и
+       нативную from base-select (седьмой раунд фидбека — «дубли стрелок»).
+       padding-right тоже возвращаем к обычному — он был увеличен только
+       под старый шеврон, у нативного своя область правее текста. */
+    background-image: none;
+    padding-right: 10px;
+  }
+
+  /* Красим нативную стрелку picker-icon в тот же --text-dim, что был у
+     градиентного фолбэка — иначе она осталась бы дефолтного цвета браузера,
+     не всегда уместного на тёмной теме. */
+  .dialog-select::picker-icon {
+    color: var(--text-dim);
+  }
+
+  .dialog-select::picker(select) {
+    appearance: base-select;
+    margin-top: 4px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-row);
+    background: var(--surface-solid);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+  }
+
+  .dialog-select option {
+    padding: 8px 10px;
+    border-radius: var(--r-row);
+    color: var(--text);
+  }
+
+  .dialog-select option:hover {
+    background: var(--surface);
+  }
+
+  .dialog-select option:checked {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+}
+
+/* Нативная кнопка «Выберите файл» — вид как у остальных кнопок диалога
+   (surface/border/pill), сам инпут остаётся текстовой рамкой .dialog-input. */
+.dialog-input[type="file"] {
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+  padding: 6px 10px;
+}
+
+.dialog-input[type="file"]::file-selector-button {
+  font: var(--fw-tab) var(--fs-tab) / 1 var(--font);
+  color: var(--text);
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 6px 14px;
+  margin-right: 10px;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.dialog-input[type="file"]::file-selector-button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.dialog-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-caption);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dialog-cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: var(--r-pill);
+  padding: 9px 18px;
+  font: var(--fw-tab) var(--fs-tab) / 1 var(--font);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.dialog-cancel:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.dialog-submit {
+  border: 1px solid var(--accent);
+  background: var(--accent-grad);
+  color: var(--accent-ink);
+  border-radius: var(--r-pill);
+  padding: 9px 18px;
+  font: var(--fw-tab) var(--fs-tab) / 1 var(--font);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.dialog-submit:hover {
+  filter: brightness(1.06);
+}
+
+.dialog-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.dialog-submit.is-danger {
+  border-color: var(--danger);
+  background: var(--danger-grad);
+}
+
+.dialog-cancel:focus-visible,
+.dialog-submit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- перетаскивание (кусок 4) --------------------------------------------- */
+
+.is-dragging {
+  opacity: 0.5;
+}
+
+.drop-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--r-row);
+}
+
+/* --- уважаем «уменьшить анимацию» ----------------------------------------- */
+/* Только добавленные переходы этой правки — drag-and-drop (.is-dragging,
+   .drop-target) выше не анимирован и здесь не участвует. */
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tab-add,
+  .tab-ghost,
+  .board-ghost,
+  .tab-menu-btn,
+  .tab-menu-item,
+  .icon-btn,
+  .round,
+  .link,
+  a.link-row,
+  .link-actions,
+  .button,
+  .toast,
+  .dialog,
+  .dialog::backdrop,
+  .dialog-input,
+  .dialog-select,
+  .dialog-input[type="file"]::file-selector-button,
+  .dialog-cancel,
+  .dialog-submit {
+    transition: none;
+    animation: none;
+  }
+}

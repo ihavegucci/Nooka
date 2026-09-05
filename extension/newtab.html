@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nooka</title>
+    <link rel="stylesheet" href="src/styles/tokens.css" />
+    <link rel="stylesheet" href="src/styles/newtab.css" />
+  </head>
+  <body>
+    <!-- Ни одной строки текста в разметке: всё приходит из core/i18n.js. -->
+    <div class="wallpaper" data-nooka="wallpaper"></div>
+    <div class="app" data-nooka="app">
+      <header class="pages" data-nooka="pages"></header>
+      <div class="pages-rule"></div>
+      <main class="boards" data-nooka="boards"></main>
+    </div>
+    <nav class="panel" data-nooka="panel"></nav>
+    <div class="toasts" data-nooka="toasts" role="status" aria-live="polite"></div>
+    <script type="module" src="src/app/newtab.js"></script>
+  </body>
+</html>
